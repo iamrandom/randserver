@@ -120,12 +120,12 @@ macosx:
 	$(AR) $@ $(BASE_O)
 	$(RANLIB) $@
 
-# mingw:
-# 	$(MAKE) "LUA_A=lua53.dll" "LUA_T=lua.exe" "LUAC_T=luac.exe" \
-# 	"AR=$(CC) -Wl,--out-implib,liblua.a -shared -o" "RANLIB=strip --strip-unneeded" \
-# 	"SYSCFLAGS=-DLUA_BUILD_AS_DLL" "SYSLIBS=" "SYSLDFLAGS=-s" a
-
 mingw:
+	$(MAKE) "LUA_A=lua53.dll" "LUA_T=lua.exe" "LUAC_T=luac.exe" \
+	"AR=$(CC) -Wl,--out-implib,liblua.a -shared -o" "RANLIB=strip --strip-unneeded" \
+	"SYSCFLAGS=-DLUA_BUILD_AS_DLL" "SYSLIBS=" "SYSLDFLAGS=-s" a
+
+mingw2:
 	$(MAKE) ../lib/liblua_$(TOOL)$(MODE).a
 
 linux:

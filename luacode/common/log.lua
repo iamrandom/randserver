@@ -15,8 +15,10 @@ end
 
 function try_catch(fun, ...)
 	local err, ret = xpcall(fun , errfun, ...)
-	if err then return ret end
-	return nil
+	if err then 
+		return err, ret 
+	end
+	return err, ret
 end
 
 local show_return_modles = {}
@@ -137,6 +139,7 @@ local now_print = function(...)
 	if color and rio.white then
 		rio.white()
 	end
+	-- old_print(debug.traceback(""))
 	rio.unlock()
 end
 

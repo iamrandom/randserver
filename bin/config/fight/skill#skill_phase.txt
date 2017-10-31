@@ -1,0 +1,11 @@
+skill_id	skill_name	delay_round	effect_round	effect_rate	effect_condition	effect_param	target	berserk_target	target_min_cnt	target_max_cnt	phase_fun	buff_id	buff_name	buff_life_type	buff_life	effect_rate	resist	base_value	base_ratio_10000	property_ratio_10000	property_type
+int	string	int	int	int	module	module	module	module	int	int	module	int	string	enum	int	int	int	int	int	int	enum
+技能ID	技能名称	延迟回合	生效回合	生效几率(万分比)	生效条件	生效参数	目标类型	狂暴目标类型	最小目标人数	最多目标人数	阶段函数	buff_id	buff名称	生命类型	生命周期	生效概率	抗性	基础数值	基础ratio	属性关联ratio	属性类型
+800000	普通攻击			10000			select_other_camp	select_all_exlude_self	1	1	do_hurt			life_hurt	1				2000	1000	power
+800101	半身不遂LV1			4000			select_self	select_self			do_buff	3017	无视兵种相克	life_skill							
+800101	半身不遂LV1			10000			select_other_camp	select_camp_exlude_self	2	2	do_hurt		攻击伤害								
+800101	半身不遂LV1										do_buff	3501	尝试发动智慧主动技能受伤	life_round	2				1000	2000	power
+806801	后期乏力	4	4	10000			select_other_camp	select_camp_exlude_self	2	2	do_buff										
+806801	后期乏力										do_buff										
+806801	后期乏力										do_hurt										
+807801	无情之殇			10000			select_other_camp	select_camp_exlude_self	2	2	do_hurt										

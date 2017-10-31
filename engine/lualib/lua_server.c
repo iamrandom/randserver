@@ -19,10 +19,11 @@ struct lua_service
 {
 	lua_State*				L;
 	pthread_t 				pt;
-	serialize_data			ser;
+	serialize_data			ser; // don't use it in other thread
 	deserialize_data		deser;
 	net_atomic_flag			flag;
 	int 					state;
+	int 					node_size;
 	struct msg_node*		head;
 	struct msg_node*		tail;
 	size_t 					ser_buff_size;
@@ -69,23 +70,27 @@ lua_State *  init_lua_script(int thread_safe)
 }
 
 
-static struct msg_node* create_and_push_msg_node(struct lua_service *service, const void* data, size_t size)
+static struct msg_node* create_and_push_msg_node(struct lua_service *service, const void* data, size_t size, size_t malloc_size)
 {
 	struct msg_node* node;
 	if(!data)
 	{
 		return 0;
 	}
+	if(malloc_size < size)
+	{
+		malloc_size = size;
+	}
 	node = (struct msg_node*)malloc(sizeof(struct msg_node));
 	if (!node) return 0;
-	node->data = malloc(size);
+	node->data = malloc(malloc_size);
 	if(!node->data)
 	{
 		free(node);
 		return 0;
 	}
 	memcpy(node->data, data, size);
-	node->size = size;
+	node->size = malloc_size;
 	node->next = 0;
 
 	if(service->tail)
@@ -97,6 +102,7 @@ static struct msg_node* create_and_push_msg_node(struct lua_service *service, co
 	{
 		service->head = node;
 	}
+	++service->node_size;
 	service->tail = node;
 
 	return node;
@@ -142,6 +148,7 @@ lua_service_c_create_help(lua_State *L, int thread_safe)
 	service->state = 1;
 	service->head = 0;
 	service->tail = 0;
+	service->node_size = 0;
 
 	if(L)
 	{
@@ -243,7 +250,7 @@ int	lua_service_c_run(struct lua_service* service, const char* module_name, int 
 			serialize_clean(&service->ser);
 			return -1;
 		}
-		node = create_and_push_msg_node(service, service->ser.data, service->ser.size);
+		node = create_and_push_msg_node(service, service->ser.data, service->ser.size, service->ser.size);
 		if(!node)
 		{
 			serialize_clean(&service->ser);
@@ -331,7 +338,7 @@ static int lua_service_run(lua_State *L)
 	// from now can not pack userdata
 	service->ser.support_flag = 0;
 
-	node = create_and_push_msg_node(service, service->ser.data, service->ser.size);
+	node = create_and_push_msg_node(service, service->ser.data, service->ser.size, service->ser.size);
 	if(!node)
 	{
 		serialize_clean(&service->ser);
@@ -400,42 +407,20 @@ static int	lua_service_is_run(lua_State *L)
 }
 
 
-static int	lua_service_push_msg(lua_State *L)
+
+static int	lua_servivce_node_size(lua_State *L)
 {
 	struct lua_service** pservice;
 	struct lua_service* service;
-	struct msg_node* node;
-
+	int node_size;
 	pservice = (struct lua_service**) luaL_checkudata(L, 1, LUA_SERVER_CURSOR);
-	luaL_argcheck (L, pservice != 0, 1, LUA_SERVER_CURSOR" lua_service_push_msg #1 is nil");
+	luaL_argcheck (L, pservice != 0, 1, LUA_SERVER_CURSOR" lua_servivce_node_size #1 is nil");
 	service = *pservice;
-	luaL_argcheck (L, service!= 0, 1, LUA_SERVER_CURSOR" lua_service_push_msg #1 service is nil");
-	
+	luaL_argcheck (L, service!= 0, 1, LUA_SERVER_CURSOR" lua_servivce_node_size #1 service is nil");
 	net_lock(&service->flag);
-	serialize_clean(&service->ser);
-	if(!service->state)
-	{
-		net_unlock(&service->flag);
-		return 0;
-	}
-	// to keep thread safe, the pack must in lock scope
-	if(serialize_pack(&service->ser, L, 2))
-	{
-		
-		luaL_argcheck(L, 0, 2, "lua_service_push_msg serialize_pack params error");
-		net_unlock(&service->flag);
-		return 0;
-	}
-	node = create_and_push_msg_node(service, service->ser.data, service->ser.size);
-
-	if(!node)
-	{
-		luaL_argcheck(L, 0, 2, "lua_service_push_msg create_msg_node error");
-		net_unlock(&service->flag);
-		return 0;
-	}
+	node_size = service->node_size;
 	net_unlock(&service->flag);
-	lua_pushinteger(L, 1);
+	lua_pushinteger(L, node_size);
 	return 1;
 }
 
@@ -446,15 +431,27 @@ static int	lua_service_push_data(lua_State *L)
 	struct msg_node* node;
 	void* data;
 	size_t size;
+	void* data2;
+	size_t size2;
+	int top;
 
 	pservice = (struct lua_service**) luaL_checkudata(L, 1, LUA_SERVER_CURSOR);
+	top = lua_gettop(L);
 	luaL_argcheck (L, pservice != 0, 1, LUA_SERVER_CURSOR" lua_service_push_data #1 is nil");
 	service = *pservice;
 	luaL_argcheck (L, service!= 0, 1, LUA_SERVER_CURSOR" lua_service_push_data #1 service is nil");
+	luaL_argcheck(L, lua_islightuserdata(L, 2), 2, LUA_SERVER_CURSOR" lua_service_push_data 2 must be lightuserdata");
 	
-	luaL_argcheck(L, lua_islightuserdata(L, 2), 2, LUA_SERVER_CURSOR" lua_service_push_data must be lightuserdata");
 	data = (void*)lua_touserdata(L, 2);
 	size = (size_t)luaL_checkinteger(L, 3);
+	data2 = 0;
+	size2 = 0;
+	if(top == 5)
+	{
+		luaL_argcheck(L, lua_islightuserdata(L, 4), 4, LUA_SERVER_CURSOR" lua_service_push_data 4 must be lightuserdata");
+		data2 = (void*)lua_touserdata(L, 4);
+		size2 = (size_t)luaL_checkinteger(L, 5);
+	}
 
 	net_lock(&service->flag);
 	if(!service->state)
@@ -462,12 +459,18 @@ static int	lua_service_push_data(lua_State *L)
 		net_unlock(&service->flag);
 		return 0;
 	}
-	node = create_and_push_msg_node(service, data, size);
+
+	node = create_and_push_msg_node(service, data, size, size + size2);
 	if(!node)
 	{
 		net_unlock(&service->flag);
 		return 0;
 	}
+	if(size2 > 0)
+	{
+		memcpy(node->data + size, data2, size2);
+	}
+	serialize_clean(&service->ser);
 	net_unlock(&service->flag);
 	lua_pushinteger(L, 1);
 	return 1;
@@ -507,6 +510,7 @@ static int	lua_service_pop_msg(lua_State *L)
 	ret = deserialize_unpack(&service->deser, L, (char*)node->data, node->size, -1);
 	free(node->data);
 	free(node);
+	--service->node_size;
 	net_unlock(&service->flag);
 	return ret;
 }
@@ -517,19 +521,17 @@ static int lua_service_pack(lua_State *L)
 	struct lua_service* service;
 
 	pservice = (struct lua_service**) luaL_checkudata(L, 1, LUA_SERVER_CURSOR);
-	luaL_argcheck (L, pservice != 0, 1, LUA_SERVER_CURSOR" lua_service_pop_msg #1 is nil");
+	luaL_argcheck (L, pservice != 0, 1, LUA_SERVER_CURSOR" lua_service_pack #1 is nil");
 	service = *pservice;
-	luaL_argcheck (L, service!= 0, 1, LUA_SERVER_CURSOR" lua_service_pop_msg #1 service is nil");
+	luaL_argcheck (L, service!= 0, 1, LUA_SERVER_CURSOR" lua_service_pack #1 service is nil");
 
 	if(!service->state)
 	{
 		return 0;
 	}
-	if(service->L != L)
-	{
 		// this function not thread safe
-		return 0;
-	}
+	luaL_argcheck (L, service->L == L, 1, LUA_SERVER_CURSOR" lua_service_pack #1 service not thread safe");
+	
 	serialize_clean(&service->ser);
 	// to keep thread safe, the pack must in lock scope
 	if(serialize_pack(&service->ser, L, 2))
@@ -552,19 +554,17 @@ static int lua_service_unpack(lua_State *L)
 	int start;
 
 	pservice = (struct lua_service**) luaL_checkudata(L, 1, LUA_SERVER_CURSOR);
-	luaL_argcheck (L, pservice != 0, 1, LUA_SERVER_CURSOR" lua_service_pop_msg #1 is nil");
+	luaL_argcheck (L, pservice != 0, 1, LUA_SERVER_CURSOR" lua_service_unpack #1 is nil");
 	service = *pservice;
-	luaL_argcheck (L, service!= 0, 1, LUA_SERVER_CURSOR" lua_service_pop_msg #1 service is nil");
+	luaL_argcheck (L, service!= 0, 1, LUA_SERVER_CURSOR" lua_service_unpack #1 service is nil");
 
 	if(!service->state)
 	{
 		return 0;
 	}
-	if(service->L != L)
-	{
-		// this function not thread safe
-		return 0;
-	}
+
+	luaL_argcheck (L, service->L == L, 1, LUA_SERVER_CURSOR" lua_service_unpack #1 service not thread safe");
+
 	data = (void*)lua_touserdata(L, 2);
 	size = (size_t)luaL_checkinteger(L, 3);
 	ret = -1;
@@ -600,6 +600,7 @@ static int	lua_service_join(lua_State *L)
 	{
 		pthread_join(service->pt, &result);
 	}
+	// service->ser can use in this thread now
 	serialize_clean(&service->ser);
 
 	if(result == 0)
@@ -624,6 +625,7 @@ static int	lua_service_join(lua_State *L)
 		free(node);
 		node = service->head;
 	}
+	service->node_size = 0;
 	lua_close(service->L);
 	free(service);
 	*pservice = 0;
@@ -647,8 +649,8 @@ int luaopen_server(lua_State*L)
 			{"stop", lua_service_stop},
 			{"is_run", lua_service_is_run},
 			{"join", lua_service_join},
-			{"push_msg", lua_service_push_msg},
 			{"push_data", lua_service_push_data},
+			{"node_size", lua_servivce_node_size},
 			{"pop_msg", lua_service_pop_msg},
 			{"pack", lua_service_pack},
 			{"unpack", lua_service_unpack},

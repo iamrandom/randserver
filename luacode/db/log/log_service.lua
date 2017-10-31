@@ -6,9 +6,7 @@ local Env = require("common.Env")
 local index = service:pop_msg()
 print("BLUE log service ", index ,"run")
 
-__init__ = true
-Env.load_all_module("db.log")
-__init__ = false
+local log_vist = require("db.log.log_vist")
 
 local function command_msg(nd, msgType, ...)
 	if not msgType then return nil end
@@ -16,6 +14,20 @@ local function command_msg(nd, msgType, ...)
 	return err
 end
 
+local function command_msg(nd, msgType, ...)
+	if not msgType then return nil end
+	local fun = log_vist[msgType]
+	if fun then
+		fun(nd, ...)
+		return true
+	end
+	return nil
+end
+
+local function command_service_msg()
+	local err, ret = try_catch(command_msg, service:pop_msg())
+	return ret
+end
 
 while service:is_run() do
 	local is_busy = 0
@@ -24,7 +36,8 @@ while service:is_run() do
 	end
 
 	if is_busy == 0 then
-		service.sleep(200)
+		-- print("log service sleep", index)
+		service.sleep(1)
 	end
 end
 

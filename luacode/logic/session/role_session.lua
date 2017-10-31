@@ -1,4 +1,6 @@
 local m = {}
+m.name = "role_session"
+
 print(debug.getinfo(1))
 
 local network = require("common.network")
@@ -11,9 +13,13 @@ function m.handle_error(session, events)
     end
 end
 
+m.msg_cnt = 0
+m.close_cnt = 0
+
 function m.handle_msg(session, msg_size, msg)
+    m.msg_cnt = m.msg_cnt + 1
     local msg_type = service:unpack(msg, msg_size, 1)
-    print("now should be here", msg_size)
+    -- print("now should be here", msg_size)
     local fun = m[msg_type]
     if fun then
         fun(session, service:unpack(msg, msg_size, -1, 1))
@@ -23,9 +29,9 @@ function m.handle_msg(session, msg_size, msg)
 end
 
 function m.close(session, reason)
-    net.socket_close(session.fd)
+    m.close_cnt = m.close_cnt + 1
     network.del_session(session.fd)
-    print("GREEN close one role", session.fd, reason, session.role_id, session.role_name)
+    -- print("GREEN close one role", session.fd, reason, session.role_id, session.role_name)
     m.all_roles[session.role_id] = nil
 end
 

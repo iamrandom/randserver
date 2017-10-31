@@ -1,0 +1,25 @@
+buff_id	buff_name	buff_class	buff_type	property	description
+int	string	module	enum	enum	text
+buffID	buff名称	buff模板	buff类型	属性	描述
+3001	跳过主动技能		FIGHT_BUFF_HARMFUL		
+3002	跳过普通攻击		FIGHT_BUFF_HARMFUL		
+3003	允许所有【洞察】		FIGHT_BUFF_BENEFICIAL		
+3004	允许普通【免疫怯战】		FIGHT_BUFF_BENEFICIAL		
+3005	禁止行动		FIGHT_BUFF_HARMFUL		
+3006	禁止力量主动技能		FIGHT_BUFF_HARMFUL		
+3007	禁止普通攻击		FIGHT_BUFF_HARMFUL		
+3008	禁止力量追击		FIGHT_BUFF_HARMFUL		
+3009	禁止智慧追击		FIGHT_BUFF_HARMFUL		
+3010	禁止智慧主动技能		FIGHT_BUFF_HARMFUL		
+3011	禁止治疗		FIGHT_BUFF_HARMFUL		
+3012	禁止吸血		FIGHT_BUFF_HARMFUL		
+3013	禁止溅射		FIGHT_BUFF_HARMFUL		
+3014	禁止反击		FIGHT_BUFF_HARMFUL		
+3015	无伤害		FIGHT_BUFF_BENEFICIAL		
+3016	忽视无伤害		FIGHT_BUFF_BENEFICIAL		
+3017	忽视兵种相克		FIGHT_BUFF_BENEFICIAL		
+3018	分裂攻击		FIGHT_BUFF_BENEFICIAL		
+3019	反击		FIGHT_BUFF_BENEFICIAL		
+3020	暴走状态		FIGHT_BUFF_HARMFUL		
+3021	连击		FIGHT_BUFF_BENEFICIAL		
+3501	尝试发动智慧主动技能受伤	("Season.Game.Fight.Buff.Branch.BuffWisdomSkillCurse","BuffWisdomSkillCurse")	FIGHT_BUFF_HARMFUL		

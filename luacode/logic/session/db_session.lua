@@ -8,13 +8,8 @@ local msg_define = require("common.msg_define")
 local hide_rule = require("common.hide_rule")
 
 m.db_sessions = {}
+m.db_msg_count = 0
 
-function m.__gc()
-	if m.buff then
-		serialize.free_buff(m.buff)
-		m.buff = nil
-	end
-end
 
 function m.get_main_db_info()
 	return {ip="192.168.8.210", port = hide_rule.get_db_port(Env.SERVER_ID), server_id=Env.SERVER_ID}
@@ -25,10 +20,16 @@ function m.get_merger_dbs()
 end
 
 local session_funs = {}
+session_funs.name = "db_session"
 
 function session_funs.send_msg(session, msg_type, ...)
     local msg, msg_size = service:pack(msg_type, ...)
     return net.socket_write(session.fd, msg, msg_size)
+end
+
+function session_funs.handle_msg(session, msg_size, msg)
+	-- print("BLUE recv msg from DB ", service:unpack(msg, msg_size))
+	m.db_msg_count = m.db_msg_count + 1
 end
 
 function session_funs.handle_connect(session, err)
@@ -38,7 +39,7 @@ function session_funs.handle_connect(session, err)
 			if session.db_id == Env.SERVER_ID then
 				-- event.trigger_fun(event.Main_DB_Reconnect, session)
 				session:send_msg(msg_define.I_am_logic)
-				print("GREEN send msg:", session:send_msg(21, 1, "hello db, i am logic"))
+				print("GREEN send msg:", session:send_msg(msg_define.DB_Request_Load_Account, 1, "hello db, i am logic"))
 			end
 			session.wait_sec = 1
 			return
@@ -48,7 +49,6 @@ function session_funs.handle_connect(session, err)
 	end
 
 	warn("handle_connect", session.fd, session.db_info, "faild")
-	net.socket_close(session.fd)
 	network.del_session(session.fd)
 	
 	session.tick_id = sec_tick.reg(session.wait_sec, session.connect_db, session)
@@ -56,7 +56,6 @@ end
 
 function session_funs.handle_error(session)
 	warn("connect", session.fd, session.db_info, "faild")
-	net.socket_close(session.fd)
 	network.del_session(session.fd)
 	session.wait_sec = 1
 	session.tick_id = sec_tick.reg(1, session.connect_db, session)
@@ -82,7 +81,7 @@ function session_funs.connect_db(session)
 end
 
 function m.connect_main_db()
-	m.connect_db(m.get_main_db_info())
+	return m.connect_db(m.get_main_db_info())
 end
 
 function m.connect_db(db_info)
@@ -102,7 +101,7 @@ end
 
 
 if __init__ then
-	m.connect_main_db()
+	m.main_db = m.connect_main_db()
 end
 
 return m

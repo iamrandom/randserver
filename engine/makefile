@@ -1,6 +1,6 @@
 
 
-MODE=64
+MODE=32
 PLAT=mingw
 
 CC= gcc -m$(MODE) -std=c11 -g  -O0 -Wall  -fno-omit-frame-pointer
@@ -32,6 +32,15 @@ test/test_serialize.exe:  test/test_serialize.o
 	$(CC) $^  -o $@  -L"$(LUA_PATH)/lib/" -llua_$(PLAT)$(MODE)
 
 
+tool/%.o:tool/%.c
+	$(CC) -c $^ -o $@
+test/%.o:test/%.c
+	$(CC) -c $^ -o $@
+
+test/test_cpack.exe:test/test_cpack.o  tool/cpack.o
+	$(CC) $^  -o $@
+
+
 .PHONY : test
 test:
 	@echo $(MODE) $(PLAT)
@@ -52,4 +61,4 @@ test/test_filesystem.exe: test/test_filesystem.c
 
 .PHONY : clean
 clean:
-	rm -f $(O_FILES) test/*.exe test/test_serialize ./libmysql.dll ./*.exe test/*.o test/*.exe
+	rm -f $(O_FILES) test/*.exe test/test_serialize ./libmysql.dll ./*.exe test/*.o test/*.exe tool/*.o

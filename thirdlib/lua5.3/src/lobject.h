@@ -292,8 +292,6 @@ struct lua_TValue {
 typedef TValue *StkId;  /* index to stack elements */
 
 
-
-
 /*
 ** Header for string value; string bytes follow the end of this structure
 ** (aligned according to 'UTString'; see next).

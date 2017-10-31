@@ -1,9 +1,11 @@
+
 local m = {}
 
 local msg_define = require("common.msg_define")
 
-local function load_account()
-
+local function load_account(fd, ...)
+    -- msg, msg_size = service:pack(1000, ...)
+    -- net.socket_write(fd, msg, msg_size)
 end
 
 local function load_role()
