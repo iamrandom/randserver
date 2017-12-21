@@ -25,6 +25,8 @@ msec_clock()
 void
 time_driver_init(time_driver* td)
 {
+	tzset();
+	
 	td->sec_tick = 0;
 	td->msec100_tick = 0;
 	td->pass_sec = 0;

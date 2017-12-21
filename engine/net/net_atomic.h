@@ -64,8 +64,8 @@ using namespace std;
 #define net_atomic_flag						atomic_flag
 #define net_atomic_flag_clear(m)			atomic_flag_clear((m))
 
-#define net_lock(m)							while(atomic_flag_test_and_set_explicit((m), memory_order_acquire)) { net_thread_sleep(0); }
-
+#define net_delay_lock(m)					while(atomic_flag_test_and_set_explicit((m), memory_order_acquire)) { net_thread_sleep(0); }
+#define net_lock(m)							while(atomic_flag_test_and_set_explicit((m), memory_order_acquire)) {}
 #define net_unlock(m)						atomic_flag_clear_explicit((m), memory_order_release)
 
 #endif //defined(ATOMIC_CPP11) || defined(ATOMIC_C11)

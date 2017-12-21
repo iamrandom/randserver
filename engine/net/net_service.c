@@ -507,7 +507,7 @@ push_queue_with_lock(struct net_service* service, net_socket nd, unsigned int ev
 		return 0;
 	}
 	index = ffid_index(service->socket_ids, nd);
-	net_lock(&service->session_lock[index]);
+	net_delay_lock(&service->session_lock[index]);
 	session = service->sessions[index];
 	if(!session || session->id != nd)
 	{
@@ -687,8 +687,15 @@ net_socket_write(struct net_service* service, net_socket nd, const void* buff, i
 		return -1;
 	}
 	index = ffid_index(service->socket_ids, nd);
-
-	net_lock(&service->session_lock[index]);
+	if(delay)
+	{
+		net_delay_lock(&service->session_lock[index]);
+	}
+	else
+	{
+		net_lock(&service->session_lock[index]);
+	}
+	
 	session = service->sessions[index];
 	if(!session || session->id != nd || !session->wsession)
 	{

@@ -316,7 +316,7 @@ post_write(struct net_service* service, struct net_session* session)
 void
 release_rest_session(struct net_service* service, struct net_session* session)
 {
-	net_lock(&service->close_lock);
+	net_delay_lock(&service->close_lock);
 	sb_tree_delete(&service->close_root, session->id);
 	net_unlock(&service->close_lock);
 
@@ -468,13 +468,13 @@ net_wait(struct net_service* service, int timeout)
 			if(!id) continue;
 			index = ffid_index(service->socket_ids, id);
 
-			net_lock(&service->session_lock[index]);
+			net_delay_lock(&service->session_lock[index]);
 	
 			session = service->sessions[index];
 			if(!session || session->id != id)
 			{
 				//session delete from net_service
-				net_lock(&service->close_lock);
+				net_delay_lock(&service->close_lock);
 				node = sb_tree_find(service->close_root, id);
 				net_unlock(&service->close_lock);
 				if(node)

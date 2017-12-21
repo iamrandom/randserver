@@ -362,7 +362,7 @@ handle_accept(struct net_service* service, int ret, int err, struct accept_sessi
 		return;
 	}
 	session_index = ffid_index(service->socket_ids, asession->id);
-	net_lock(&service->session_lock[session_index]);
+	net_delay_lock(&service->session_lock[session_index]);
 	session = service->sessions[session_index];
 
 	if (!ret && err)
@@ -693,7 +693,7 @@ handle_write(struct net_service* service, int ret, int err, struct write_session
 	}
 
 	index = ffid_index(service->socket_ids, fd);
-	net_lock(&service->session_lock[index]);
+	net_delay_lock(&service->session_lock[index]);
 	session = service->sessions[index];
 	wsession->op = OP_NET_NONE;
 	if(ret && bytes >= 0)
@@ -750,7 +750,7 @@ handle_read(struct net_service* service, int ret, int err, struct read_session* 
 	}
 
 	index = ffid_index(service->socket_ids, rsession->id);
-	net_lock(&service->session_lock[index]);
+	net_delay_lock(&service->session_lock[index]);
 	session = service->sessions[index];
 	if(!session || session->id != rsession->id)
 	{
